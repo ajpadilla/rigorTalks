@@ -1,50 +1,40 @@
 <?php
 
-require '../vendor/autoload.php';
+ini_set('display_errors', 1);
+ini_set('display_starup_error', 1);
+error_reporting(E_ALL);
 
-use RigorTalks\Patterns\AbstracFactory\Client;
-use RigorTalks\Patterns\Builder\Client as ClientBuilder;
-use RigorTalks\Patterns\AbstracFactory\FactoryManager;
-use RigorTalks\Patterns\Builder\Factory;
-use RigorTalks\Patterns\Builder\BuilderManager;
-use RigorTalks\Patterns\Factory\Factories\OReillyFactoryMethod;
-use RigorTalks\Temperature;
+require_once '../vendor/autoload.php';
 
-echo "Hola rigor". '<br />';;
+use Aura\Router\RouterContainer;
+use Laminas\Diactoros\ServerRequestFactory;
 
-echo "GoldFactory".'<br />';
+$request = ServerRequestFactory::fromGlobals(
+    $_SERVER,
+    $_GET,
+    $_POST,
+    $_COOKIE,
+    $_FILES
+);
 
-$account = FactoryManager::make(new Client('gold'));
-$account->makeProducts();
+$routerContainer = new RouterContainer();
+$map = $routerContainer->getMap();
 
-echo $account->getAccount()->getDataOfProduct().'<br />';
-echo $account->getCreditCard()->getDataOfProduct().'<br />';
-echo $account->getDebitCard()->getDataOfProduct().'<br />';
-echo $account->getGift()->getDataOfProduct().'<br />';
+$map->get('person.hello', '/person/hello',[
+    'controller' => 'RigorTalks\ExampleController\PersonController',
+    'action' => 'hello'
+]);
 
+$matcher = $routerContainer->getMatcher();
+$route = $matcher->match($request);
 
+if (!$route) {
+    echo "No route";
+}else{
+    $handlerData = $route->handler;
+    $controllerName = $handlerData['controller'];
+    $actionName = $handlerData['action'];
 
-echo "Builder Pattern".'<br />';
-echo "Standar Account".'<br />';
-
-$accountBuilder = Factory::createAccount(new ClientBuilder('standard'));
-
-$manager = new BuilderManager();
-$manager->setAccountBuilder($accountBuilder);
-$manager->build();
-
-echo $manager->getAccountBuilder()->getData();
-
-
-echo "Factory Pattern".'<br />';
-echo "ORelly Book".'<br />';
-
-$orellyFactoryObject = new OReillyFactoryMethod('OReilly');
-// Return SamsBook instance
-$book = $orellyFactoryObject->make('other');
-echo "Context: {$orellyFactoryObject->getContext()}".'<br />';
-echo "Book Data".'<br />';
-echo "Title: {$book->getTitle()}".'<br />';
-echo "subject: {$book->getSubject()}".'<br />';
-echo "Author: {$book->getAuthor()}".'<br />';
-
+    $controller = new $controllerName;
+    $controller->{$actionName}($request);
+}
